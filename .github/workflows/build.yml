@@ -1,0 +1,141 @@
+# =============================================================================
+# Epsilon-XiaoMiao CI — Build ESP32 firmware in the cloud
+# =============================================================================
+name: Epsilon XiaoMiao CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IDF_VERSION: v5.3.2
+  PROJECT_NAME: epsilon_xiaomiao
+  IDF_TARGET: esp32
+
+jobs:
+  build:
+    name: Build Firmware (ESP32)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    container:
+      image: espressif/idf:release-v5.3
+      options: --user root
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up ESP-IDF environment
+        run: |
+          . /opt/esp/idf/export.sh
+          idf.py --version
+
+      - name: Build firmware
+        run: |
+          . /opt/esp/idf/export.sh
+          # Fresh configure from sdkconfig.defaults
+          rm -f sdkconfig
+          idf.py reconfigure
+          idf.py build
+
+      - name: Generate merged binary (loader-compatible)
+        run: |
+          . /opt/esp/idf/export.sh
+          python3 -m esptool --chip esp32 merge_bin \
+            --flash_mode qio \
+            --flash_freq 80m \
+            --flash_size 16MB \
+            --output epsilon-xiaomiao-merged.bin \
+            0x1000 build/bootloader/bootloader.bin \
+            0x8000 build/partition_table/partition-table.bin \
+            0x10000 build/${PROJECT_NAME}.bin
+
+      - name: Show artifacts
+        run: |
+          ls -lh build/*.bin build/*.elf build/*.map 2>/dev/null || true
+          ls -lh *.bin
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: epsilon-xiaomiao-firmware
+          path: |
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
+            build/${{ env.PROJECT_NAME }}.bin
+            build/${{ env.PROJECT_NAME }}.elf
+            build/${{ env.PROJECT_NAME }}.map
+            build/flash_args
+            epsilon-xiaomiao-merged.bin
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ${{ github.workspace }}/build/**/build.log
+            ${{ github.workspace }}/build/config/sdkconfig.json
+          retention-days: 7
+
+  release:
+    name: Create Release (tagged)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: epsilon-xiaomiao-firmware
+          path: ./artifacts
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"
+          SIZE=$(stat -c%s ./artifacts/epsilon-xiaomiao-merged.bin 2>/dev/null || echo 0)
+          cat > release-notes.md << EOF
+          ## Epsilon-XiaoMiao v${VERSION}
+          **Target**: ESP32-WROVER-B (16MB Flash + 8MB PSRAM)
+          **Display**: ST7735 160x128 (scaled from logical resolution)
+
+          ### Flashing
+          \`\`\`bash
+          esptool.py write_flash 0x0 epsilon-xiaomiao-merged.bin
+          \`\`\`
+
+          Firmware size: $((SIZE/1024)) KB
+          EOF
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_notes.outputs.tag }}
+          name: Epsilon-XiaoMiao v${{ steps.release_notes.outputs.version }}
+          body_path: release-notes.md
+          files: |
+            ./artifacts/epsilon-xiaomiao-merged.bin
+            ./artifacts/${{ env.PROJECT_NAME }}.bin
+            ./artifacts/bootloader.bin
+            ./artifacts/partition-table.bin
+            ./artifacts/flash_args
+          fail_on_unmatched_files: false
