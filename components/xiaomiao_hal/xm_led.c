@@ -63,6 +63,6 @@ void xm_led_refresh(void) {
         .loop_count = 0,
         .flags.eot_level = 0,
     };
-    rmt_transmit(s_led_channel, ws2812_bits, sizeof(ws2812_bits), &tx_config);
+    rmt_transmit(s_led_channel, ws2812_bits, sizeof(ws2812_bits), &tx_config, NULL, NULL);
     rmt_tx_wait_all_done(s_led_channel, 100);
 }
