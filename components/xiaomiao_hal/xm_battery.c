@@ -20,13 +20,14 @@ void xm_battery_init(void) {
     };
     adc_oneshot_config_channel(s_adc_handle, XM_BATTERY_ADC_CHANNEL, &chan_cfg);
 
-    adc_cali_curve_fitting_config_t cali_cfg = {
+    /* Use line fitting calibration (available in IDF v5.3) */
+    adc_cali_line_fitting_config_t cali_cfg = {
         .unit_id = ADC_UNIT_1,
         .chan = XM_BATTERY_ADC_CHANNEL,
         .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
-    adc_cali_create_scheme_curve_fitting(&cali_cfg, &s_cali_handle);
+    adc_cali_create_scheme_line_fitting(&cali_cfg, &s_cali_handle);
     ESP_LOGI(TAG, "Battery ADC initialized (CH6/GPIO34)");
 }
 

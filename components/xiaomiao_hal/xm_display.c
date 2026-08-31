@@ -28,6 +28,7 @@ static const char* TAG = "xm_display";
 static spi_device_handle_t s_spi;
 
 static inline void dc_set(bool level) { gpio_set_level(XM_PIN_LCD_DC, level); }
+static inline void cs_set(bool level) { gpio_set_level(XM_PIN_LCD_CS, level); }
 
 static void spi_write(const uint8_t* data, size_t len) {
     if (len == 0) return;

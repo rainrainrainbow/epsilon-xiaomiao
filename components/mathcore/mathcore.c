@@ -51,14 +51,14 @@ static token_t next_token(void) {
     token_t t = {TK_END, 0, 0};
     while (*s_pos == ' ' || *s_pos == '\t') s_pos++;
     if (*s_pos == 0) return t;
-    if (isdigit(*s_pos) || *s_pos == '.') {
+    if (isdigit((unsigned char)*s_pos) || *s_pos == '.') {
         char* end;
         t.type = TK_NUM;
         t.num_val = strtod(s_pos, &end);
         s_pos = end;
         return t;
     }
-    if (isalpha(*s_pos)) {
+    if (isalpha((unsigned char)*s_pos)) {
         t.name = *s_pos;
         s_pos++;
         /* Check if function name */

@@ -46,7 +46,7 @@ extern "C" {
 
 /* ===================== Battery ===================== */
 /* ADC1 Channel 6 = GPIO34 (shared with key A) */
-#define XM_BATTERY_ADC_CHANNEL ADC1_CHANNEL_6
+#define XM_BATTERY_ADC_CHANNEL ADC_CHANNEL_6
 
 /* ===================== Public API ===================== */
 

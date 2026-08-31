@@ -7,11 +7,10 @@ static const char* TAG = "xm_led";
 static rmt_channel_handle_t s_led_channel = NULL;
 static uint8_t s_led_buf[XM_LED_COUNT * 3];
 
-/* WS2812B timing (in RMT ticks @ 80MHz = 12.5ns each) */
-#define T0H  (9)   /* 0 code: high 0.4us */
-#define T0L  (31)  /* 0 code: low 0.85us */
-#define T1H  (27)  /* 1 code: high 0.8us */
-#define T1L  (13)  /* 1 code: low 0.45us */
+#define T0H  (9)
+#define T0L  (31)
+#define T1H  (27)
+#define T1L  (13)
 
 static rmt_symbol_word_t ws2812_bits[24 * XM_LED_COUNT];
 
@@ -60,10 +59,6 @@ void xm_led_refresh(void) {
         encode_byte(s_led_buf[i * 3 + 1], &ws2812_bits[i * 24 + 8]);
         encode_byte(s_led_buf[i * 3 + 2], &ws2812_bits[i * 24 + 16]);
     }
-    rmt_transmit_config_t tx_config = {
-        .loop_count = 0,
-        .flags.eot_level = 0,
-    };
-    rmt_transmit(s_led_channel, ws2812_bits, sizeof(ws2812_bits), &tx_config);
+    rmt_transmit(s_led_channel, ws2812_bits, sizeof(ws2812_bits), NULL);
     rmt_tx_wait_all_done(s_led_channel, 100);
 }
