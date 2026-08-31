@@ -73,7 +73,8 @@ void xm_led_set(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
 void xm_led_clear(void);
 void xm_led_refresh(void);
 
-/* Battery voltage in volts (e.g. 3.7f) */
+/* Battery */
+void xm_battery_init(void);
 float xm_battery_voltage(void);
 
 /* Timing helpers (blocking ms / us) */
