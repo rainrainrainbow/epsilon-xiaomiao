@@ -23,7 +23,6 @@ void xm_battery_init(void) {
     /* Use line fitting calibration (available in IDF v5.3) */
     adc_cali_line_fitting_config_t cali_cfg = {
         .unit_id = ADC_UNIT_1,
-        .chan = XM_BATTERY_ADC_CHANNEL,
         .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
